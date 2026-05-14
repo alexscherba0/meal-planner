@@ -1,0 +1,8 @@
+{
+  "appId": "com.example.mealplanner",
+  "appName": "План питания",
+  "webDir": ".",
+  "server": {
+    "iosScheme": "https"
+  }
+}
