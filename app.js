@@ -1,4 +1,10 @@
-const STORAGE_KEY = "mealPlannerStateV1";
+const LEGACY_STORAGE_KEY = "mealPlannerStateV1";
+const DB_NAME = "mealPlannerDb";
+const DB_VERSION = 1;
+const DB_STORE = "appState";
+const DB_STATE_KEY = "state";
+
+let database = null;
 
 function createId() {
   if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
@@ -95,7 +101,7 @@ const defaultState = {
   ],
 };
 
-let state = loadState();
+let state = cloneDefaultState();
 
 const elements = {
   tabs: document.querySelectorAll(".tab"),
@@ -129,12 +135,20 @@ const elements = {
   cookingDays: document.querySelector("#cookingDays"),
 };
 
-function loadState() {
+async function loadState() {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : cloneDefaultState();
+    database = await withTimeout(openDatabase(), 2500);
+    const storedState = await withTimeout(readStateFromDatabase(), 2500);
+
+    if (storedState) {
+      return normalizeState(storedState);
+    }
+
+    const migratedState = loadLegacyState();
+    await saveStateToDatabase(migratedState);
+    return migratedState;
   } catch {
-    return cloneDefaultState();
+    return loadLegacyState();
   }
 }
 
@@ -142,8 +156,89 @@ function cloneDefaultState() {
   return JSON.parse(JSON.stringify(defaultState));
 }
 
+function withTimeout(promise, timeoutMs) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Database request timed out")), timeoutMs);
+    }),
+  ]);
+}
+
+function loadLegacyState() {
+  try {
+    const stored = localStorage.getItem(LEGACY_STORAGE_KEY);
+    return stored ? normalizeState(JSON.parse(stored)) : cloneDefaultState();
+  } catch {
+    return cloneDefaultState();
+  }
+}
+
+function normalizeState(nextState) {
+  return {
+    settings: {
+      ...cloneDefaultState().settings,
+      ...(nextState.settings || {}),
+    },
+    recipes: Array.isArray(nextState.recipes) ? nextState.recipes : cloneDefaultState().recipes,
+    menu: Array.isArray(nextState.menu) ? nextState.menu : cloneDefaultState().menu,
+  };
+}
+
 function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const snapshot = JSON.parse(JSON.stringify(state));
+
+  if (!database) {
+    localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(snapshot));
+    return;
+  }
+
+  saveStateToDatabase(snapshot).catch(() => {
+    localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(snapshot));
+  });
+}
+
+function openDatabase() {
+  return new Promise((resolve, reject) => {
+    if (!("indexedDB" in globalThis)) {
+      reject(new Error("IndexedDB is unavailable"));
+      return;
+    }
+
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(DB_STORE)) {
+        db.createObjectStore(DB_STORE);
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function readStateFromDatabase() {
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(DB_STORE, "readonly");
+    const store = transaction.objectStore(DB_STORE);
+    const request = store.get(DB_STATE_KEY);
+
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function saveStateToDatabase(nextState) {
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(DB_STORE, "readwrite");
+    const store = transaction.objectStore(DB_STORE);
+
+    store.put(nextState, DB_STATE_KEY);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
 }
 
 function formatNumber(value) {
@@ -515,4 +610,9 @@ elements.cookingDays.addEventListener("click", (event) => {
   }
 });
 
-render();
+async function initializeApp() {
+  state = await loadState();
+  render();
+}
+
+initializeApp();
