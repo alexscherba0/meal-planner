@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#fbfaf6" />
+    <title>План питания</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <img src="assets/app-icon.svg" alt="" class="app-icon" />
+          <div>
+            <p class="eyebrow">Недельное меню</p>
+            <h1>План питания</h1>
+          </div>
+        </div>
+        <div class="week-total" aria-live="polite">
+          <span id="weekCalories">0</span>
+          <small>ккал за неделю</small>
+        </div>
+      </header>
+
+      <main>
+        <section class="summary-grid" aria-label="Итоги недели">
+          <article>
+            <span>Белки</span>
+            <strong id="weekProtein">0 г</strong>
+          </article>
+          <article>
+            <span>Жиры</span>
+            <strong id="weekFat">0 г</strong>
+          </article>
+          <article>
+            <span>Углеводы</span>
+            <strong id="weekCarbs">0 г</strong>
+          </article>
+        </section>
+
+        <nav class="tabs" aria-label="Разделы приложения">
+          <button class="tab active" data-view="menuView" type="button">Меню</button>
+          <button class="tab" data-view="recipesView" type="button">Рецепты</button>
+          <button class="tab" data-view="settingsView" type="button">Готовка</button>
+        </nav>
+
+        <section id="menuView" class="view active">
+          <div class="toolbar">
+            <h2>Меню на неделю</h2>
+            <button class="icon-button" id="resetMenuButton" type="button" title="Очистить меню" aria-label="Очистить меню">×</button>
+          </div>
+
+          <form id="menuForm" class="planner-form">
+            <label>
+              Блюдо
+              <select id="menuRecipe" required></select>
+            </label>
+            <label>
+              День
+              <select id="menuDay" required></select>
+            </label>
+            <label>
+              Прием пищи
+              <select id="menuMeal" required></select>
+            </label>
+            <label>
+              Порций
+              <input id="menuServings" min="1" step="1" type="number" value="1" required />
+            </label>
+            <label>
+              Когда готовлю
+              <select id="menuPrepDay"></select>
+            </label>
+            <button type="submit">Добавить в меню</button>
+          </form>
+
+          <div id="weekGrid" class="week-grid"></div>
+        </section>
+
+        <section id="recipesView" class="view">
+          <div class="toolbar">
+            <h2>База рецептов</h2>
+            <button class="secondary-button" id="cancelEditButton" type="button" hidden>Новый рецепт</button>
+          </div>
+
+          <form id="recipeForm" class="recipe-form">
+            <input id="recipeId" type="hidden" />
+            <label>
+              Название
+              <input id="recipeTitle" type="text" placeholder="Например, паста с тунцом" required />
+            </label>
+            <div class="form-row">
+              <label>
+                Порций в рецепте
+                <input id="recipeServings" min="1" step="1" type="number" value="1" required />
+              </label>
+              <label>
+                Категория
+                <input id="recipeCategory" type="text" placeholder="Обед" />
+              </label>
+            </div>
+            <div class="macro-inputs">
+              <label>
+                Ккал/порция
+                <input id="recipeCalories" min="0" step="1" type="number" required />
+              </label>
+              <label>
+                Б/порция
+                <input id="recipeProtein" min="0" step="0.1" type="number" required />
+              </label>
+              <label>
+                Ж/порция
+                <input id="recipeFat" min="0" step="0.1" type="number" required />
+              </label>
+              <label>
+                У/порция
+                <input id="recipeCarbs" min="0" step="0.1" type="number" required />
+              </label>
+            </div>
+            <label>
+              Ингредиенты
+              <textarea id="recipeIngredients" placeholder="Курица, рис, овощи"></textarea>
+            </label>
+            <label>
+              Заметки
+              <textarea id="recipeNotes" placeholder="Как готовить или чем заменить продукты"></textarea>
+            </label>
+            <button id="saveRecipeButton" type="submit">Сохранить рецепт</button>
+          </form>
+
+          <div id="recipeList" class="recipe-list"></div>
+        </section>
+
+        <section id="settingsView" class="view">
+          <div class="toolbar">
+            <h2>Дни готовки</h2>
+          </div>
+          <p class="hint">Выбери дни, когда удобно готовить. Эти дни появятся в меню как варианты для отметки «готово».</p>
+          <div id="cookingDays" class="day-picker"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="План питания">
+  <rect width="128" height="128" rx="30" fill="#2d6a4f"/>
+  <circle cx="64" cy="64" r="39" fill="#fbfaf6"/>
+  <path d="M42 60c0-15 10-26 22-26s22 11 22 26v27H42V60Z" fill="#edf5ef"/>
+  <path d="M43 87h42" stroke="#2d6a4f" stroke-width="7" stroke-linecap="round"/>
+  <path d="M51 58h26M51 72h18" stroke="#d95d39" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="82" cy="72" r="7" fill="#f2c14e"/>
+</svg>
