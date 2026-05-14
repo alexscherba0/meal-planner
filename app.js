@@ -45,7 +45,12 @@ const defaultState = {
       protein: 16,
       fat: 10,
       carbs: 52,
-      ingredients: "Овсянка, греческий йогурт, ягоды, мед",
+      ingredients: [
+        { id: "ingredient-oats", name: "Овсянка", weight: 45, calories: 370, protein: 13, fat: 7, carbs: 60 },
+        { id: "ingredient-yogurt", name: "Греческий йогурт", weight: 140, calories: 75, protein: 10, fat: 2, carbs: 4 },
+        { id: "ingredient-berries", name: "Ягоды", weight: 90, calories: 50, protein: 1, fat: 0.3, carbs: 12 },
+        { id: "ingredient-honey", name: "Мед", weight: 10, calories: 304, protein: 0, fat: 0, carbs: 82 },
+      ],
       notes: "Можно собрать вечером в банку и оставить в холодильнике.",
     },
     {
@@ -57,7 +62,13 @@ const defaultState = {
       protein: 38,
       fat: 16,
       carbs: 55,
-      ingredients: "Куриное филе, рис, огурец, авокадо, соус",
+      ingredients: [
+        { id: "ingredient-chicken", name: "Куриное филе", weight: 260, calories: 120, protein: 23, fat: 2.5, carbs: 0 },
+        { id: "ingredient-rice", name: "Рис готовый", weight: 300, calories: 130, protein: 2.7, fat: 0.3, carbs: 28 },
+        { id: "ingredient-avocado", name: "Авокадо", weight: 90, calories: 160, protein: 2, fat: 15, carbs: 9 },
+        { id: "ingredient-cucumber", name: "Огурец", weight: 140, calories: 15, protein: 0.7, fat: 0.1, carbs: 3.6 },
+        { id: "ingredient-sauce", name: "Соус", weight: 40, calories: 180, protein: 3, fat: 12, carbs: 14 },
+      ],
       notes: "Курицу и рис удобно приготовить заранее на два дня.",
     },
     {
@@ -69,7 +80,12 @@ const defaultState = {
       protein: 42,
       fat: 26,
       carbs: 48,
-      ingredients: "Лосось, картофель, брокколи, лимон",
+      ingredients: [
+        { id: "ingredient-salmon", name: "Лосось", weight: 260, calories: 208, protein: 20, fat: 13, carbs: 0 },
+        { id: "ingredient-potato", name: "Картофель", weight: 360, calories: 77, protein: 2, fat: 0.1, carbs: 17 },
+        { id: "ingredient-broccoli", name: "Брокколи", weight: 220, calories: 34, protein: 2.8, fat: 0.4, carbs: 7 },
+        { id: "ingredient-olive-oil", name: "Оливковое масло", weight: 18, calories: 884, protein: 0, fat: 100, carbs: 0 },
+      ],
       notes: "Запекать все на одном противне около 25 минут.",
     },
   ],
@@ -102,6 +118,7 @@ const defaultState = {
 };
 
 let state = cloneDefaultState();
+let recipeIngredients = [];
 
 const elements = {
   tabs: document.querySelectorAll(".tab"),
@@ -127,7 +144,17 @@ const elements = {
   recipeProtein: document.querySelector("#recipeProtein"),
   recipeFat: document.querySelector("#recipeFat"),
   recipeCarbs: document.querySelector("#recipeCarbs"),
-  recipeIngredients: document.querySelector("#recipeIngredients"),
+  ingredientName: document.querySelector("#ingredientName"),
+  ingredientWeight: document.querySelector("#ingredientWeight"),
+  ingredientCalories: document.querySelector("#ingredientCalories"),
+  ingredientProtein: document.querySelector("#ingredientProtein"),
+  ingredientFat: document.querySelector("#ingredientFat"),
+  ingredientCarbs: document.querySelector("#ingredientCarbs"),
+  addIngredientButton: document.querySelector("#addIngredientButton"),
+  ingredientList: document.querySelector("#ingredientList"),
+  ingredientStatus: document.querySelector("#ingredientStatus"),
+  dishTotals: document.querySelector("#dishTotals"),
+  servingTotals: document.querySelector("#servingTotals"),
   recipeNotes: document.querySelector("#recipeNotes"),
   saveRecipeButton: document.querySelector("#saveRecipeButton"),
   cancelEditButton: document.querySelector("#cancelEditButton"),
@@ -168,9 +195,9 @@ function withTimeout(promise, timeoutMs) {
 function loadLegacyState() {
   try {
     const stored = localStorage.getItem(LEGACY_STORAGE_KEY);
-    return stored ? normalizeState(JSON.parse(stored)) : cloneDefaultState();
+    return stored ? normalizeState(JSON.parse(stored)) : normalizeState(cloneDefaultState());
   } catch {
-    return cloneDefaultState();
+    return normalizeState(cloneDefaultState());
   }
 }
 
@@ -180,8 +207,108 @@ function normalizeState(nextState) {
       ...cloneDefaultState().settings,
       ...(nextState.settings || {}),
     },
-    recipes: Array.isArray(nextState.recipes) ? nextState.recipes : cloneDefaultState().recipes,
+    recipes: (Array.isArray(nextState.recipes) ? nextState.recipes : cloneDefaultState().recipes).map(normalizeRecipe),
     menu: Array.isArray(nextState.menu) ? nextState.menu : cloneDefaultState().menu,
+  };
+}
+
+function normalizeRecipe(recipe) {
+  const servings = Math.max(1, Number(recipe.servings) || 1);
+  const defaultRecipe = defaultState.recipes.find((item) => item.id === recipe.id);
+  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : defaultRecipe?.ingredients || [];
+  const normalized = {
+    ...recipe,
+    servings,
+    category: recipe.category || "",
+    notes: recipe.notes || "",
+    ingredients: normalizeIngredients(ingredients),
+    legacyIngredientText: typeof recipe.ingredients === "string" ? recipe.ingredients : recipe.legacyIngredientText || "",
+    calories: Number(recipe.calories) || 0,
+    protein: Number(recipe.protein) || 0,
+    fat: Number(recipe.fat) || 0,
+    carbs: Number(recipe.carbs) || 0,
+  };
+
+  return applyRecipeTotals(normalized);
+}
+
+function normalizeIngredients(ingredients) {
+  if (!Array.isArray(ingredients)) {
+    return [];
+  }
+
+  return ingredients.map((ingredient) => ({
+    id: ingredient.id || createId(),
+    name: ingredient.name || "",
+    weight: Number(ingredient.weight) || 0,
+    calories: Number(ingredient.calories) || 0,
+    protein: Number(ingredient.protein) || 0,
+    fat: Number(ingredient.fat) || 0,
+    carbs: Number(ingredient.carbs) || 0,
+  }));
+}
+
+function applyRecipeTotals(recipe) {
+  const totals = calculateRecipeTotals(recipe);
+
+  return {
+    ...recipe,
+    totalCalories: totals.dish.calories,
+    totalProtein: totals.dish.protein,
+    totalFat: totals.dish.fat,
+    totalCarbs: totals.dish.carbs,
+    calories: totals.serving.calories,
+    protein: totals.serving.protein,
+    fat: totals.serving.fat,
+    carbs: totals.serving.carbs,
+  };
+}
+
+function calculateRecipeTotals(recipe) {
+  const servings = Math.max(1, Number(recipe.servings) || 1);
+  const hasIngredients = Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0;
+  const dish = hasIngredients
+    ? sumIngredientNutrition(recipe.ingredients)
+    : {
+        calories: (Number(recipe.calories) || 0) * servings,
+        protein: (Number(recipe.protein) || 0) * servings,
+        fat: (Number(recipe.fat) || 0) * servings,
+        carbs: (Number(recipe.carbs) || 0) * servings,
+      };
+
+  return {
+    dish,
+    serving: {
+      calories: dish.calories / servings,
+      protein: dish.protein / servings,
+      fat: dish.fat / servings,
+      carbs: dish.carbs / servings,
+    },
+  };
+}
+
+function sumIngredientNutrition(ingredients) {
+  return ingredients.reduce(
+    (total, ingredient) => {
+      const nutrition = nutritionForIngredient(ingredient);
+      total.calories += nutrition.calories;
+      total.protein += nutrition.protein;
+      total.fat += nutrition.fat;
+      total.carbs += nutrition.carbs;
+      return total;
+    },
+    { calories: 0, protein: 0, fat: 0, carbs: 0 },
+  );
+}
+
+function nutritionForIngredient(ingredient) {
+  const weightFactor = (Number(ingredient.weight) || 0) / 100;
+
+  return {
+    calories: (Number(ingredient.calories) || 0) * weightFactor,
+    protein: (Number(ingredient.protein) || 0) * weightFactor,
+    fat: (Number(ingredient.fat) || 0) * weightFactor,
+    carbs: (Number(ingredient.carbs) || 0) * weightFactor,
   };
 }
 
@@ -243,6 +370,10 @@ function saveStateToDatabase(nextState) {
 
 function formatNumber(value) {
   return Math.round(value * 10) / 10;
+}
+
+function macroText(nutrition) {
+  return `${Math.round(nutrition.calories)} ккал · Б ${formatNumber(nutrition.protein)} · Ж ${formatNumber(nutrition.fat)} · У ${formatNumber(nutrition.carbs)}`;
 }
 
 function recipeById(id) {
@@ -339,7 +470,7 @@ function renderWeek() {
         <article class="day-card ${cookingDays.has(day.id) ? "cooking-day" : ""}">
           <header class="day-head">
             <strong>${day.full}${cookingDays.has(day.id) ? "<em>готовка</em>" : ""}</strong>
-            <div class="day-total">${Math.round(total.calories)} ккал · Б ${formatNumber(total.protein)} · Ж ${formatNumber(total.fat)} · У ${formatNumber(total.carbs)}</div>
+            <div class="day-total">${macroText(total)}</div>
           </header>
           ${mealMarkup}
         </article>
@@ -364,7 +495,7 @@ function renderMenuEntry(entry) {
         <strong>${escapeHtml(recipe.title)}</strong>
         ${prepBadge}
       </div>
-      <div class="entry-meta">${entry.servings} порц. · ${Math.round(nutrition.calories)} ккал · Б ${formatNumber(nutrition.protein)} · Ж ${formatNumber(nutrition.fat)} · У ${formatNumber(nutrition.carbs)}</div>
+      <div class="entry-meta">${entry.servings} порц. · ${macroText(nutrition)}</div>
       <div class="entry-actions">
         <button class="tiny-button" type="button" data-action="toggle-prep" data-id="${entry.id}">${prepDay ? "Не готовить" : "Готовить"}</button>
         <button class="tiny-button danger" type="button" data-action="delete-entry" data-id="${entry.id}">Удалить</button>
@@ -385,8 +516,8 @@ function renderRecipes() {
             ${badge}
           </div>
           <div class="recipe-meta">${escapeHtml(recipe.category || "Без категории")} · ${recipe.servings} порц. в рецепте</div>
-          <div class="macro-line">${recipe.calories} ккал · Б ${recipe.protein} · Ж ${recipe.fat} · У ${recipe.carbs} на порцию</div>
-          ${recipe.ingredients ? `<p>${escapeHtml(recipe.ingredients)}</p>` : ""}
+          <div class="macro-line">${macroText(recipe)} на порцию · всего ${macroText({ calories: recipe.totalCalories, protein: recipe.totalProtein, fat: recipe.totalFat, carbs: recipe.totalCarbs })}</div>
+          ${recipe.ingredients.length ? `<p>${escapeHtml(recipe.ingredients.map((ingredient) => ingredient.name).join(", "))}</p>` : recipe.legacyIngredientText ? `<p>${escapeHtml(recipe.legacyIngredientText)}</p>` : ""}
           <div class="recipe-actions">
             <button class="tiny-button" type="button" data-action="edit-recipe" data-id="${recipe.id}">Править</button>
             <button class="tiny-button danger" type="button" data-action="delete-recipe" data-id="${recipe.id}">Удалить</button>
@@ -410,20 +541,112 @@ function renderCookingDays() {
     .join("");
 }
 
+function renderIngredientBuilder() {
+  const servings = Math.max(1, Number(elements.recipeServings.value) || 1);
+  const recipePreview = applyRecipeTotals({
+    servings,
+    ingredients: recipeIngredients,
+    calories: 0,
+    protein: 0,
+    fat: 0,
+    carbs: 0,
+  });
+
+  elements.ingredientStatus.textContent = `${recipeIngredients.length} ${ingredientCountWord(recipeIngredients.length)}`;
+  elements.dishTotals.textContent = macroText({
+    calories: recipePreview.totalCalories,
+    protein: recipePreview.totalProtein,
+    fat: recipePreview.totalFat,
+    carbs: recipePreview.totalCarbs,
+  });
+  elements.servingTotals.textContent = macroText(recipePreview);
+
+  elements.ingredientList.innerHTML = recipeIngredients.length
+    ? recipeIngredients.map(renderIngredientCard).join("")
+    : '<p class="empty">Добавь первый ингредиент, чтобы КБЖУ посчиталось автоматически.</p>';
+}
+
+function renderIngredientCard(ingredient) {
+  const nutrition = nutritionForIngredient(ingredient);
+
+  return `
+    <article class="ingredient-card">
+      <div>
+        <strong>${escapeHtml(ingredient.name)}</strong>
+        <span>${formatNumber(ingredient.weight)} г · на 100 г: ${Math.round(ingredient.calories)} ккал · Б ${formatNumber(ingredient.protein)} · Ж ${formatNumber(ingredient.fat)} · У ${formatNumber(ingredient.carbs)}</span>
+      </div>
+      <span>${macroText(nutrition)}</span>
+      <button class="tiny-button danger" type="button" data-action="delete-ingredient" data-id="${ingredient.id}">Удалить</button>
+    </article>
+  `;
+}
+
+function ingredientCountWord(count) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+
+  if (mod10 === 1 && mod100 !== 11) {
+    return "ингредиент";
+  }
+
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return "ингредиента";
+  }
+
+  return "ингредиентов";
+}
+
 function render() {
   renderSelectOptions();
   renderSummary();
   renderWeek();
   renderRecipes();
   renderCookingDays();
+  renderIngredientBuilder();
 }
 
 function resetRecipeForm() {
   elements.recipeForm.reset();
   elements.recipeId.value = "";
   elements.recipeServings.value = "1";
+  recipeIngredients = [];
+  clearIngredientInputs();
   elements.saveRecipeButton.textContent = "Сохранить рецепт";
   elements.cancelEditButton.hidden = true;
+  renderIngredientBuilder();
+}
+
+function clearIngredientInputs() {
+  elements.ingredientName.value = "";
+  elements.ingredientWeight.value = "";
+  elements.ingredientCalories.value = "";
+  elements.ingredientProtein.value = "";
+  elements.ingredientFat.value = "";
+  elements.ingredientCarbs.value = "";
+}
+
+function addIngredient() {
+  const name = elements.ingredientName.value.trim();
+  const weight = Number(elements.ingredientWeight.value) || 0;
+
+  if (!name || weight <= 0) {
+    elements.ingredientName.focus();
+    return;
+  }
+
+  recipeIngredients.push({
+    id: createId(),
+    name,
+    weight,
+    calories: Number(elements.ingredientCalories.value) || 0,
+    protein: Number(elements.ingredientProtein.value) || 0,
+    fat: Number(elements.ingredientFat.value) || 0,
+    carbs: Number(elements.ingredientCarbs.value) || 0,
+  });
+
+  clearIngredientInputs();
+  elements.ingredientName.focus();
+  renderIngredientBuilder();
 }
 
 function editRecipe(id) {
@@ -440,28 +663,34 @@ function editRecipe(id) {
   elements.recipeProtein.value = recipe.protein;
   elements.recipeFat.value = recipe.fat;
   elements.recipeCarbs.value = recipe.carbs;
-  elements.recipeIngredients.value = recipe.ingredients;
+  recipeIngredients = normalizeIngredients(recipe.ingredients);
   elements.recipeNotes.value = recipe.notes;
   elements.saveRecipeButton.textContent = "Обновить рецепт";
   elements.cancelEditButton.hidden = false;
+  renderIngredientBuilder();
   elements.recipeTitle.focus();
 }
 
 function saveRecipe(event) {
   event.preventDefault();
+  if (!recipeIngredients.length) {
+    elements.ingredientName.focus();
+    return;
+  }
 
-  const recipe = {
+  const recipe = applyRecipeTotals({
     id: elements.recipeId.value || createId(),
     title: elements.recipeTitle.value.trim(),
     servings: Number(elements.recipeServings.value) || 1,
     category: elements.recipeCategory.value.trim(),
-    calories: Number(elements.recipeCalories.value) || 0,
-    protein: Number(elements.recipeProtein.value) || 0,
-    fat: Number(elements.recipeFat.value) || 0,
-    carbs: Number(elements.recipeCarbs.value) || 0,
-    ingredients: elements.recipeIngredients.value.trim(),
+    ingredients: normalizeIngredients(recipeIngredients),
+    legacyIngredientText: "",
+    calories: 0,
+    protein: 0,
+    fat: 0,
+    carbs: 0,
     notes: elements.recipeNotes.value.trim(),
-  };
+  });
 
   if (!recipe.title) {
     return;
@@ -566,6 +795,24 @@ elements.tabs.forEach((tab) => {
 elements.menuForm.addEventListener("submit", addMenuEntry);
 elements.recipeForm.addEventListener("submit", saveRecipe);
 elements.cancelEditButton.addEventListener("click", resetRecipeForm);
+elements.addIngredientButton.addEventListener("click", addIngredient);
+elements.recipeServings.addEventListener("input", renderIngredientBuilder);
+
+[
+  elements.ingredientName,
+  elements.ingredientWeight,
+  elements.ingredientCalories,
+  elements.ingredientProtein,
+  elements.ingredientFat,
+  elements.ingredientCarbs,
+].forEach((input) => {
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addIngredient();
+    }
+  });
+});
 
 elements.resetMenuButton.addEventListener("click", () => {
   state.menu = [];
@@ -601,6 +848,16 @@ elements.recipeList.addEventListener("click", (event) => {
   if (button.dataset.action === "delete-recipe") {
     deleteRecipe(button.dataset.id);
   }
+});
+
+elements.ingredientList.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-action='delete-ingredient']");
+  if (!button) {
+    return;
+  }
+
+  recipeIngredients = recipeIngredients.filter((ingredient) => ingredient.id !== button.dataset.id);
+  renderIngredientBuilder();
 });
 
 elements.cookingDays.addEventListener("click", (event) => {

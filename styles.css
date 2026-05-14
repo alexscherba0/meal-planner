@@ -217,7 +217,9 @@ h3 {
 }
 
 .form-row,
-.macro-inputs {
+.macro-inputs,
+.ingredient-form,
+.recipe-totals {
   display: grid;
   gap: 10px;
 }
@@ -228,6 +230,87 @@ h3 {
 
 .macro-inputs {
   grid-template-columns: repeat(4, 1fr);
+}
+
+.ingredient-builder {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-head span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.ingredient-form {
+  grid-template-columns: minmax(160px, 1.4fr) repeat(5, minmax(92px, 1fr)) auto;
+  align-items: end;
+}
+
+.ingredient-form button {
+  min-width: 106px;
+}
+
+.ingredient-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ingredient-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.ingredient-card strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.ingredient-card span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.recipe-totals {
+  grid-template-columns: 1fr 1fr;
+}
+
+.recipe-totals article {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+}
+
+.recipe-totals span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.recipe-totals strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.98rem;
 }
 
 label {
@@ -473,6 +556,15 @@ textarea:focus {
   .day-picker {
     grid-template-columns: repeat(4, 1fr);
   }
+
+  .ingredient-form {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ingredient-form label:first-child,
+  .ingredient-form button {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 620px) {
@@ -501,7 +593,13 @@ textarea:focus {
   .summary-grid,
   .form-row,
   .macro-inputs,
+  .recipe-totals,
   .recipe-list {
+    grid-template-columns: 1fr;
+  }
+
+  .ingredient-form,
+  .ingredient-card {
     grid-template-columns: 1fr;
   }
 

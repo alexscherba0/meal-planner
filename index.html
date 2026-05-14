@@ -101,28 +101,69 @@
                 <input id="recipeCategory" type="text" placeholder="Обед" />
               </label>
             </div>
-            <div class="macro-inputs">
+            <section class="ingredient-builder" aria-label="Ингредиенты рецепта">
+              <div class="section-head">
+                <h3>Ингредиенты</h3>
+                <span id="ingredientStatus">0 ингредиентов</span>
+              </div>
+              <div class="ingredient-form">
+                <label>
+                  Ингредиент
+                  <input id="ingredientName" type="text" placeholder="Например, куриное филе" />
+                </label>
+                <label>
+                  Вес, г
+                  <input id="ingredientWeight" min="0" step="1" type="number" placeholder="150" />
+                </label>
+                <label>
+                  Ккал/100 г
+                  <input id="ingredientCalories" min="0" step="1" type="number" placeholder="120" />
+                </label>
+                <label>
+                  Б/100 г
+                  <input id="ingredientProtein" min="0" step="0.1" type="number" placeholder="22" />
+                </label>
+                <label>
+                  Ж/100 г
+                  <input id="ingredientFat" min="0" step="0.1" type="number" placeholder="3" />
+                </label>
+                <label>
+                  У/100 г
+                  <input id="ingredientCarbs" min="0" step="0.1" type="number" placeholder="0" />
+                </label>
+                <button id="addIngredientButton" type="button">Добавить</button>
+              </div>
+              <div id="ingredientList" class="ingredient-list"></div>
+            </section>
+
+            <div class="recipe-totals" aria-live="polite">
+              <article>
+                <span>Все блюдо</span>
+                <strong id="dishTotals">0 ккал · Б 0 · Ж 0 · У 0</strong>
+              </article>
+              <article>
+                <span>1 порция</span>
+                <strong id="servingTotals">0 ккал · Б 0 · Ж 0 · У 0</strong>
+              </article>
+            </div>
+            <div class="macro-inputs legacy-macros" hidden>
               <label>
                 Ккал/порция
-                <input id="recipeCalories" min="0" step="1" type="number" required />
+                <input id="recipeCalories" min="0" step="1" type="number" />
               </label>
               <label>
                 Б/порция
-                <input id="recipeProtein" min="0" step="0.1" type="number" required />
+                <input id="recipeProtein" min="0" step="0.1" type="number" />
               </label>
               <label>
                 Ж/порция
-                <input id="recipeFat" min="0" step="0.1" type="number" required />
+                <input id="recipeFat" min="0" step="0.1" type="number" />
               </label>
               <label>
                 У/порция
-                <input id="recipeCarbs" min="0" step="0.1" type="number" required />
+                <input id="recipeCarbs" min="0" step="0.1" type="number" />
               </label>
             </div>
-            <label>
-              Ингредиенты
-              <textarea id="recipeIngredients" placeholder="Курица, рис, овощи"></textarea>
-            </label>
             <label>
               Заметки
               <textarea id="recipeNotes" placeholder="Как готовить или чем заменить продукты"></textarea>
